@@ -5,7 +5,7 @@
 ### 1. リポジトリをクローン
 
 ```bash
-git clone https://github.com/yuta925/geek-hackathon.git
+git clone https://github.com/team-tender/geek-hackathon.git
 cd geek-hackathon
 ```
 ### 2. Flutter バージョンの統一（fvm 使用）
