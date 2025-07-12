@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "735610460431",
+    "project_id": "tender-13fe2",
+    "storage_bucket": "tender-13fe2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:735610460431:android:e96227fe1b6aa2b2bb067a",
+        "android_client_info": {
+          "package_name": "com.example.geekHackathon"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDs7OY7M0qc9xQvhDhft-kq3hjXKynNLEM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:735610460431:android:3adf291959fa39dabb067a",
+        "android_client_info": {
+          "package_name": "com.example.geek_hackathon"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDs7OY7M0qc9xQvhDhft-kq3hjXKynNLEM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
