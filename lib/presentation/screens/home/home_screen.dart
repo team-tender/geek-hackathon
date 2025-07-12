@@ -20,25 +20,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // サンプルデータ (変更なし)
   final List<Destination> defaultDestinations = [
     Destination(
-      name: '京都',
-      description: '伝統と文化の街、古都京都。',
+      name: '長崎',
+      description: '異国情緒あふれる港町。歴史と文化が交差する街。',
+      access: '羽田空港から長崎空港まで約2時間',
+      imageUrl:
+          'https://plus.unsplash.com/premium_photo-1690957484571-26f88c6ad43f?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8TmFnYXNha2l8ZW58MHx8MHx8fDA%3D', // 長崎の街並み
+    ),
+    Destination(
+      name: '金沢',
+      description: '加賀百万石の城下町。兼六園や近江町市場が魅力。',
       access: '東京から新幹線で約2時間30分',
-      imageUrl: 'https://images.unsplash.com/photo-1578637387935-13293e502嵓嵓嵓',
+      imageUrl:
+          'https://plus.unsplash.com/premium_photo-1690957484571-26f88c6ad43f?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8TmFnYXNha2l8ZW58MHx8MHx8fDA%3D', // 金沢・雪の茶屋街
     ),
     Destination(
-      name: '沖縄',
-      description: '青い海と白い砂浜が広がる楽園。',
-      access: '羽田空港から直行便で約3時間',
-      imageUrl: 'https://images.unsplash.com/photo-1519046904884-53103b34b206',
-    ),
-    Destination(
-      name: '北海道',
-      description: '大自然と美味しいグルメを楽しめる。',
-      access: '新千歳空港から札幌まで電車で約40分',
-      imageUrl: 'https://images.unsplash.com/photo-1557898142-29a3a251b14a',
+      name: '屋久島',
+      description: '世界自然遺産の島。神秘的な森と豊かな自然。',
+      access: '鹿児島からフェリーで約4時間、または飛行機で約35分',
+      imageUrl:
+          'https://plus.unsplash.com/premium_photo-1690957484571-26f88c6ad43f?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8TmFnYXNha2l8ZW58MHx8MHx8fDA%3D', // 屋久島・苔むす森
     ),
   ];
-
   @override
   void initState() {
     super.initState();

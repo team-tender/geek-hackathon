@@ -23,7 +23,7 @@ class DestinationCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 600),
+        duration: const Duration(milliseconds: 400),
         transitionBuilder: (child, animation) {
           final rotate = Tween(begin: pi, end: 0.0).animate(animation);
           return AnimatedBuilder(
@@ -32,11 +32,10 @@ class DestinationCard extends StatelessWidget {
             builder: (context, widget) {
               final angle = rotate.value;
               // 回転の後半（90度未満）でウィジェットを表示するよう修正
-              final content = angle < (pi / 2) ? widget : Container();
               return Transform(
                 transform: Matrix4.rotationY(angle),
                 alignment: Alignment.center,
-                child: content,
+                child: child,
               );
             },
           );
