@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geek_hackathon/data/repositories/travel_repository.dart';
+import 'package:geek_hackathon/presentation/providers/language_provider.dart';
 import 'package:geek_hackathon/presentation/screens/home/home_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:geek_hackathon/data/models/destination.dart';
@@ -105,7 +106,11 @@ class QuestionViewModel extends StateNotifier<QuestionState> {
 
   Future<void> _fetchQuestion() async {
     try {
-      final question = await _travelRepository.fetchQuestion(_answers);
+      final languageCode = ref.read(languageProvider).languageCode;
+      final question = await _travelRepository.fetchQuestion(
+        _answers,
+        languageCode,
+      );
       state = state.copyWith(
         status: ApiStatus.success,
         question: question,
@@ -125,17 +130,17 @@ class QuestionViewModel extends StateNotifier<QuestionState> {
       question: 'おすすめの旅行先を診断中...',
     );
     try {
+      final languageCode = ref.read(languageProvider).languageCode;
       final destinationList = await _travelRepository.fetchDestinations(
         _answers,
-      ); // ✅ destinationList を定義
+        languageCode,
+      );
       ref.read(destinationListProvider.notifier).state = destinationList;
 
       state = state.copyWith(
         status: ApiStatus.success,
         answers: [..._answers],
-        destination: destinationList.isNotEmpty
-            ? destinationList.first
-            : null, // ✅ ここで使う
+        destination: destinationList.isNotEmpty ? destinationList.first : null,
       );
     } catch (e) {
       state = state.copyWith(
