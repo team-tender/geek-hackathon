@@ -9,14 +9,19 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
       height: preferredSize.height,
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       alignment: Alignment.centerLeft,
+      decoration: const BoxDecoration(color: Color(0xFFFFB973)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          Image.asset('assets/test.png', height: 32),
-          const SizedBox(width: 12),
-          const Text(
-            'Tender',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          Image.asset('assets/tendericon.png', height: 60),
+          const SizedBox(width: 20),
+          Text(
+            'TENDER',
+            style: TextStyle(
+              // Changed GoogleFonts.pacifico
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),

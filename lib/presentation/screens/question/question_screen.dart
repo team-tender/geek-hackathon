@@ -2,42 +2,61 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:geek_hackathon/data/models/destination.dart';
-
 import 'package:go_router/go_router.dart';
 import 'package:geek_hackathon/presentation/screens/question/question_viewmodel.dart';
+import 'package:geek_hackathon/presentation/screens/question/animated_arrow.dart';
+import 'package:lottie/lottie.dart';
 
 class QuestionScreen extends ConsumerStatefulWidget {
   const QuestionScreen({super.key});
-
   @override
   ConsumerState<QuestionScreen> createState() => _QuestionScreenState();
 }
 
-class _QuestionScreenState extends ConsumerState<QuestionScreen> {
+class _QuestionScreenState extends ConsumerState<QuestionScreen>
+    with SingleTickerProviderStateMixin {
   final CardSwiperController _swiperController = CardSwiperController();
+  late final AnimationController _arrowShakeController;
 
   @override
   void dispose() {
     _swiperController.dispose();
+    _arrowShakeController.dispose();
     super.dispose();
   }
 
   @override
   void initState() {
     super.initState();
+
+    _arrowShakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(questionViewModelProvider.notifier).fetchFirstQuestion();
     });
   }
 
+  bool _isNavigating = false;
+
   Future<void> handleAnswer(String answer) async {
+    if (_isNavigating) return;
+
     final viewModel = ref.read(questionViewModelProvider.notifier);
     final currentState = ref.read(questionViewModelProvider);
 
     await viewModel.submitAnswer(currentState.question, answer);
 
-    if (!mounted) return;
-    if (viewModel.answers.length >= 5 && context.mounted) {
+    if (viewModel.answers.length >= 5) {
+      setState(() {
+        _isNavigating = true; // カード非表示フラグ
+      });
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      if (!mounted) return;
       context.go('/home');
     }
   }
@@ -46,238 +65,207 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(questionViewModelProvider);
     final viewModel = ref.read(questionViewModelProvider.notifier);
-
+    if (_isNavigating) {
+      // 遷移直前はカード非表示にして空の画面やローディング表示などにする
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: _buildBody(context, state, viewModel),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBody(
-    BuildContext context,
-    QuestionState state,
-    QuestionViewModel viewModel,
-  ) {
-    // 1. 最終結果が表示された場合
-    if (state.destination != null) {
-      return DestinationResult(
-        destination: state.destination!,
-        onRestart: () {
-          viewModel.reset();
-          viewModel.fetchFirstQuestion();
-        },
-      );
-    }
-
-    // 2. 読み込み中の場合
-    if (state.status == ApiStatus.loading) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      body: Stack(
+        alignment: Alignment.center,
         children: [
-          const CircularProgressIndicator(),
-          const SizedBox(height: 20),
-          Text(state.question, textAlign: TextAlign.center),
-        ],
-      );
-    }
-
-    // 3. エラーが発生した場合
-    if (state.status == ApiStatus.error) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 50),
-          const SizedBox(height: 20),
-          Text('エラーが発生しました: ${state.errorMessage}'),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () => viewModel.fetchFirstQuestion(),
-            child: const Text('やり直す'),
-          ),
-        ],
-      );
-    }
-
-    // 4. 質問中または初期状態の場合
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 質問中: スワイプカードを表示
-            SizedBox(
-              // CardSwiperのサイズを親に合わせる
-              height: MediaQuery.of(context).size.height * 0.7,
-              width: MediaQuery.of(context).size.width,
-              child: CardSwiper(
-                controller: _swiperController,
-                cardsCount: 1, // 常に1つの質問を表示
-                numberOfCardsDisplayed: 1,
-                isLoop: false,
-                allowedSwipeDirection: const AllowedSwipeDirection.all(),
-                onSwipe: (previousIndex, currentIndex, direction) {
-                  String answer = '';
-                  if (direction == CardSwiperDirection.right) {
-                    answer = 'はい';
-                  } else if (direction == CardSwiperDirection.left) {
-                    answer = 'いいえ';
-                  } else if (direction == CardSwiperDirection.top) {
-                    answer = 'わからない';
-                  } else if (direction == CardSwiperDirection.bottom) {
-                    answer = 'たぶんそう';
-                  }
-                  handleAnswer(answer);
-                  return true;
-                },
-                cardBuilder:
-                    (context, index, percentThresholdX, percentThresholdY) {
-                      return Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        color: const Color(0xFFFFE5CB),
-                        child: Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.asset(
-                                  'assets/laughing.gif', // TODO: あなたの画像パスに置き換えてください
-                                  height: 280,
-                                  width: 280,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                state.question,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.headlineSmall,
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 20),
-                              const Text(
-                                '右にスワイプ: はい / 左にスワイプ: いいえ',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const Spacer(),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
+          if (state.status == ApiStatus.loading)
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Lottie.asset(
+                    'assets/loading.json', // ← あなたのLottieファイルパス
+                    height: 400,
+                  ),
+                ],
+              ),
+            )
+          else if (state.status == ApiStatus.error)
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 50),
+                  const SizedBox(height: 20),
+                  Text('エラーが発生しました: ${state.errorMessage}'),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () => viewModel.fetchFirstQuestion(),
+                    child: const Text('やり直す'),
+                  ),
+                ],
+              ),
+            )
+          else
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.75,
+                  width: MediaQuery.of(context).size.width,
+                  child: CardSwiper(
+                    controller: _swiperController,
+                    cardsCount: 1,
+                    numberOfCardsDisplayed: 1,
+                    isLoop: false,
+                    allowedSwipeDirection: const AllowedSwipeDirection.all(),
+                    onSwipe: (previousIndex, currentIndex, direction) {
+                      String answer = '';
+                      if (direction == CardSwiperDirection.right) {
+                        answer = 'はい';
+                      } else if (direction == CardSwiperDirection.left) {
+                        answer = 'いいえ';
+                      } else if (direction == CardSwiperDirection.top) {
+                        answer = 'わからない';
+                      } else if (direction == CardSwiperDirection.bottom) {
+                        answer = 'たぶんそう';
+                      }
+                      setState(() {});
+                      Future.delayed(const Duration(milliseconds: 1000), () {
+                        if (mounted) {
+                          setState(() {});
+                        }
+                      });
+                      handleAnswer(answer);
+                      return true;
+                    },
+                    cardBuilder:
+                        (context, index, percentThresholdX, percentThresholdY) {
+                          return Card(
+                            elevation: 4,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            color: const Color(0xFFFFE5CB),
+                            child: Padding(
+                              padding: const EdgeInsets.all(24.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Column(
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.arrow_right,
-                                          size: 40,
-                                          color: Colors.blue,
-                                        ),
-                                        onPressed: () => _swiperController
-                                            .swipe(CardSwiperDirection.right),
-                                      ),
-                                      const Text(
-                                        'Yes',
-                                        style: TextStyle(fontSize: 14),
-                                      ),
-                                    ],
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.asset(
+                                      'assets/liveChatbot.gif',
+                                      height: 280,
+                                      width: 280,
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
-                                  Column(
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.arrow_left,
-                                          size: 40,
-                                          color: Colors.red,
-                                        ),
-                                        onPressed: () => _swiperController
-                                            .swipe(CardSwiperDirection.left),
-                                      ),
-                                      const Text(
-                                        'Mo',
-                                        style: TextStyle(fontSize: 14),
-                                      ),
-                                    ],
+                                  //const Spacer(),
+                                  SizedBox(height: 50),
+                                  Text(
+                                    state.question,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.headlineSmall,
+                                    textAlign: TextAlign.center,
                                   ),
-                                  Column(
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.arrow_upward,
-                                          size: 40,
-                                          color: Colors.orange,
-                                        ),
-                                        onPressed: () => _swiperController
-                                            .swipe(CardSwiperDirection.top),
-                                      ),
-                                      const Text(
-                                        'Skip',
-                                        style: TextStyle(fontSize: 14),
-                                      ),
-                                    ],
-                                  ),
-                                  Column(
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.arrow_downward,
-                                          size: 40,
-                                          color: Colors.green,
-                                        ),
-                                        onPressed: () => _swiperController
-                                            .swipe(CardSwiperDirection.bottom),
-                                      ),
-                                      const Text(
-                                        'Maybe yes',
-                                        style: TextStyle(fontSize: 14),
-                                      ),
-                                    ],
-                                  ),
+                                  // SizedBox(height: 20),
+                                  // const Text(
+                                  //   '右: はい / 左: いいえ / 上: わからない / 下: たぶんそう',
+                                  //   style: TextStyle(fontSize: 16, color: Colors.grey),
+                                  //   textAlign: TextAlign.center,
+                                  // ),
+                                  // const Spacer(),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-              ),
+                            ),
+                          );
+                        },
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        // 「元に戻す」ボタン
-        if (viewModel.canUndo)
+          // 左側 NO（横揺れ）
+          AnimatedArrow(
+            imagePath: 'assets/arrow_right.png',
+            label: 'NO',
+            delay: Duration(milliseconds: 0),
+            direction: Axis.horizontal, // ← 横揺れ
+          ),
+
+          // 右側 YES（横揺れ）
+          AnimatedArrow(
+            imagePath: 'assets/arrow_left.png',
+            label: 'YES',
+            delay: Duration(milliseconds: 0),
+            direction: Axis.horizontal, // ← 横揺れ
+          ),
+
+          // 下側 SKIP（縦揺れ）
+          AnimatedArrow(
+            imagePath: 'assets/arrow_downward.png',
+            label: 'SKIP',
+            delay: Duration(milliseconds: 0),
+            bottom: 16,
+            direction: Axis.vertical, // ← ★縦揺れ
+          ),
+
+          AnimatedArrow(
+            imagePath: 'assets/arrow_upward.png',
+            label: 'MAYBE YES',
+            delay: Duration(milliseconds: 0),
+            top: 10,
+            direction: Axis.vertical, // ← ★縦揺れ
+          ),
           Positioned(
-            bottom: 20,
-            left: 20,
-            child: FloatingActionButton(
-              onPressed: () {
-                viewModel.undo();
-                // CardSwiperのundoはUI上の動きのため、
-                // stateが更新されれば自動で再描画されるので不要
-              },
-              heroTag: 'undoButton',
-              child: const Icon(Icons.undo),
+            bottom: 16,
+            right: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                // Undoボタン（背景黒、アイコン白）
+                ElevatedButton(
+                  onPressed: () {
+                    _swiperController.undo();
+                    ref.read(questionViewModelProvider.notifier).undo();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black, // 背景黒
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(20),
+                  ),
+                  child: const Icon(
+                    Icons.undo,
+                    size: 35,
+                    color: Colors.white,
+                  ), // アイコン白
+                ),
+                const SizedBox(height: 20),
+                // Resetボタン（背景白、アイコン黒）
+                ElevatedButton(
+                  onPressed: () {
+                    ref.read(questionViewModelProvider.notifier).reset();
+                    ref
+                        .read(questionViewModelProvider.notifier)
+                        .fetchFirstQuestion();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white, // 背景白
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(20),
+                    //side: const BorderSide(color: Colors.black), // 黒い枠線を付けたい場合
+                  ),
+                  child: const Icon(
+                    Icons.refresh,
+                    size: 35,
+                    color: Colors.black,
+                  ), // アイコン黒
+                ),
+              ],
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-/// 診断結果を表示するウィジェット
 class DestinationResult extends StatelessWidget {
   const DestinationResult({
     super.key,
@@ -286,21 +274,12 @@ class DestinationResult extends StatelessWidget {
   });
   final Destination destination;
   final VoidCallback onRestart;
-
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('あなたへのおすすめは...', style: TextStyle(fontSize: 18)),
-          const SizedBox(height: 8),
-          Text(
-            destination.name,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
           const SizedBox(height: 20),
           ClipRRect(
             borderRadius: BorderRadius.circular(12),

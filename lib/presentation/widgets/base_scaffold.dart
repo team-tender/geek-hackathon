@@ -11,7 +11,10 @@ class BaseScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const Header(),
-      body: body,
+      body: Container(
+        color: Colors.transparent, // ★これを明示しておく
+        child: body,
+      ),
       bottomNavigationBar: const BottomNavigationBarCustom(),
     );
   }
