@@ -19,16 +19,21 @@ class MyApp extends ConsumerWidget {
       title: 'Hackathon App',
       theme: ThemeData(primarySwatch: Colors.blue),
       routerConfig: router,
-      locale: locale,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      // サポートするロケールを追加
       supportedLocales: const [
         Locale('en', ''), // English
         Locale('ja', ''), // Japanese
+        Locale('ko', ''), // Korean
+        Locale('zh', ''), // Chinese
+        Locale('es', ''), // Spanish
+        Locale('fr', ''), // French
       ],
+      locale: locale,
     );
   }
 }

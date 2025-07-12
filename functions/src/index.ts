@@ -9,6 +9,25 @@ import { createApi } from "unsplash-js";
 const OPENAI_API_KEY = defineString("OPENAI_API_KEY");
 const UNSPLASH_ACCESS_KEY = defineString("UNSPLASH_ACCESS_KEY");
 
+const getLanguageName = (code: string | undefined): string => {
+  switch (code) {
+    case 'en':
+      return 'English';
+    case 'ja':
+      return 'Japanese';
+    case 'ko':
+      return 'Korean';
+    case 'zh':
+      return 'Chinese';
+    case 'es':
+      return 'Spanish';
+    case 'fr':
+      return 'French';
+    default:
+      return 'Japanese'; // 不明な場合は日本語をデフォルトにする
+  }
+};
+
 // --- API 1: アキネーター風の質問を生成する関数 ---
 export const getTravelQuestion = onRequest(
   // 2. 関数が使用する秘密情報を指定
@@ -21,7 +40,8 @@ export const getTravelQuestion = onRequest(
     });
 
     const previousAnswers = req.body.data?.answers || [];
-    const language = req.body.data?.language === 'en' ? 'English' : 'Japanese';
+    const languageCode = req.body.data?.language;
+    const language = getLanguageName(languageCode);
 
     // answersが配列であることを確認
     if (!Array.isArray(previousAnswers)) {
@@ -72,7 +92,9 @@ export const getTravelDestination = onRequest(
     const unsplash = createApi({ accessKey: UNSPLASH_ACCESS_KEY.value() });
 
     const answers = req.body.data?.answers;
-    const language = req.body.data?.language === 'en' ? 'English' : 'Japanese';
+    const languageCode = req.body.data?.language;
+    const language = getLanguageName(languageCode); 
+
     if (!answers || !Array.isArray(answers) || answers.length === 0) {
       // ... (エラー処理は変更なし)
       return;
@@ -81,7 +103,7 @@ export const getTravelDestination = onRequest(
 
     // OpenAIに旅行先候補を3つ、JSON形式で要求する
     const locationsPrompt = `
-      ユーザーの以下の回答履歴を元に、最もおすすめの日本の旅行先の候補を5つ提案してください。
+      ユーザーの以下の回答履歴を元に、最もおすすめの日本の旅行先の候補を5提案してください。
       都道府県名のような広域な地名ではなく、より具体的な地名（例：都市名、有名な観光地名など）を提案してください。
       回答は {"locations": ["地名1", "地名2", "地名3", "地名4", "地名5"]} というJSONオブジェクトの形式で、locationsというキーに地名の配列を入れて返してください。
       例: {"locations": ["箱根", "軽井沢", "別府温泉", "伊勢志摩", "金沢"]}
