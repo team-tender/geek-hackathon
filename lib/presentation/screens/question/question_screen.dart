@@ -3,140 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 // Destinationモデルを使っているので忘れずにインポート
 import 'package:geek_hackathon/data/models/destination.dart';
-import 'package:geek_hackathon/data/repositories/travel_repository.dart'; // ← TravelRepositoryのインターフェース
-import 'package:geek_hackathon/data/repositories/mock_travel_repository.dart'; // ← モック
-
-enum ApiStatus { initial, loading, success, error }
-
-class QuestionState {
-  final String question;
-  final ApiStatus status;
-  final String? errorMessage;
-  final Destination? destination;
-
-  // コンストラクタ
-  const QuestionState({
-    this.question = '',
-    this.status = ApiStatus.initial,
-    this.errorMessage,
-    this.destination,
-  });
-
-  // copyWith メソッド
-  QuestionState copyWith({
-    String? question,
-    ApiStatus? status,
-    // errorMessage と destination を null にリセットできるようにする
-    ValueGetter<String?>? errorMessage,
-    ValueGetter<Destination?>? destination,
-  }) {
-    return QuestionState(
-      question: question ?? this.question,
-      status: status ?? this.status,
-      errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
-      destination: destination != null ? destination() : this.destination,
-    );
-  }
-}
-
-class QuestionViewModel extends StateNotifier<QuestionState> {
-  final TravelRepository _travelRepository;
-  final List<QuestionState> _previousStates = []; // 過去の状態を保存するリスト
-
-  QuestionViewModel(this._travelRepository) : super(const QuestionState());
-
-  bool get canUndo => _previousStates.isNotEmpty;
-
-  /// 状態を完全に初期化する
-  void reset() {
-    _previousStates.clear();
-    state = const QuestionState();
-  }
-
-  /// 最初の質問を取得する
-  Future<void> fetchFirstQuestion() async {
-    _previousStates.clear();
-    state = state.copyWith(
-      status: ApiStatus.loading,
-      question: '最初の質問を準備中です...',
-      // reset時にdestinationが残らないようにnullでリセット
-      destination: () => null,
-    );
-    await Future.delayed(const Duration(seconds: 1));
-    try {
-      state = state.copyWith(
-        status: ApiStatus.success,
-        question: 'あなたはアウトドア派ですか？',
-      );
-    } catch (e) {
-      state = state.copyWith(
-        status: ApiStatus.error,
-        errorMessage: () => e.toString(),
-      );
-    }
-  }
-
-  final List<String> _answers = [];
-
-  /// 回答を送信し、次の質問または結果を取得する
-  Future<void> submitAnswer(String question, String answer) async {
-    _saveState();
-    _answers.add(answer); // ← 回答を保存
-
-    state = state.copyWith(
-      status: ApiStatus.loading,
-      question: '次の質問を考えています...',
-    );
-
-    try {
-      final nextQuestion = await _travelRepository.fetchQuestion(
-        _answers,
-      ); // ← 修正
-
-      if (nextQuestion == 'すべての質問が終わりました。') {
-        final destinations = await _travelRepository.fetchDestinations(
-          _answers,
-        ); // ← 修正
-        final destination = destinations.isNotEmpty ? destinations.first : null;
-        state = state.copyWith(
-          status: ApiStatus.success,
-          destination: () => destination,
-          question: nextQuestion,
-        );
-      } else {
-        state = state.copyWith(
-          status: ApiStatus.success,
-          question: nextQuestion,
-        );
-      }
-    } catch (e) {
-      state = state.copyWith(
-        status: ApiStatus.error,
-        errorMessage: () => e.toString(),
-      );
-    }
-  }
-
-  /// 現在の状態を保存する
-  void _saveState() {
-    _previousStates.add(state);
-  }
-
-  /// 一つ前の状態に戻る
-  void undo() {
-    if (_previousStates.isNotEmpty) {
-      _answers.removeLast();
-      state = _previousStates.removeLast();
-    }
-  }
-}
-
-final questionViewModelProvider =
-    StateNotifierProvider<QuestionViewModel, QuestionState>((ref) {
-      final repo = ref.watch(mockTravelRepositoryProvider); // ← 変更
-      return QuestionViewModel(repo);
-    });
-// --- UI (View) の定義 ---
+import 'package:go_router/go_router.dart';
+import 'package:geek_hackathon/presentation/screens/question/question_viewmodel.dart';
 
 class QuestionScreen extends ConsumerStatefulWidget {
   const QuestionScreen({super.key});
@@ -157,10 +25,20 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
   @override
   void initState() {
     super.initState();
-    // 初期状態で最初の質問を取得
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(questionViewModelProvider.notifier).fetchFirstQuestion();
     });
+  }
+
+  Future<void> handleAnswer(String answer) async {
+    final viewModel = ref.read(questionViewModelProvider.notifier);
+    final currentState = ref.read(questionViewModelProvider);
+
+    await viewModel.submitAnswer(currentState.question, answer);
+    if (!mounted) return;
+    if (viewModel.answers.length >= 5 && context.mounted) {
+      context.go('/home');
+    }
   }
 
   @override
@@ -252,7 +130,7 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
                   } else if (direction == CardSwiperDirection.bottom) {
                     answer = 'たぶんそう';
                   }
-                  viewModel.submitAnswer(state.question, answer);
+                  handleAnswer(answer);
                   return true;
                 },
                 cardBuilder:
