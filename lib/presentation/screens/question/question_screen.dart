@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
-// Destinationモデルを使っているので忘れずにインポート
 import 'package:geek_hackathon/data/models/destination.dart';
-import 'package:geek_hackathon/data/repositories/travel_repository.dart'; // ← TravelRepositoryのインターフェース
-import 'package:geek_hackathon/data/repositories/mock_travel_repository.dart'; // ← モック
+
 import 'package:go_router/go_router.dart';
 import 'package:geek_hackathon/presentation/screens/question/question_viewmodel.dart';
 
@@ -38,6 +36,7 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
 
     await viewModel.submitAnswer(currentState.question, answer);
 
+    if (!mounted) return;
     if (viewModel.answers.length >= 5 && context.mounted) {
       context.go('/home');
     }
