@@ -12,7 +12,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'Hackathon App',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: const Color(0xFFFFCA96),
+      ),
       routerConfig: router, // ← GoRouter をここで使う
     );
   }

@@ -9,6 +9,7 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
       height: preferredSize.height,
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       alignment: Alignment.centerLeft,
+      decoration: const BoxDecoration(color: Color(0xFFFFB973)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
