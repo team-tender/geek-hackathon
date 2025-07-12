@@ -5,7 +5,7 @@
 ### 1. リポジトリをクローン
 
 ```bash
-git clone https://github.com/yuta925/geek-hackathon.git
+git clone https://github.com/team-tender/geek-hackathon.git
 cd geek-hackathon
 ```
 ### 2. Flutter バージョンの統一（fvm 使用）
@@ -52,19 +52,19 @@ flutter run
 
 - `core/`  
   アプリケーション全体で使用する定数やユーティリティ関数などの共通コードを格納します。
-    - `constants.dart`: APIエンドポイントや文字列などの定数を定義します。
-    - `utils.dart`: 共通で使われるヘルパー関数などを記述します。
+  - `constants.dart`: APIエンドポイントや文字列などの定数を定義します。
+  - `utils.dart`: 共通で使われるヘルパー関数などを記述します。
 
 - `data/`  
   データに関する責務を持つ層です。モデル定義やリポジトリを配置します。
-    - `models/`: API レスポンスやローカルデータを扱うデータモデルを定義します。
-    - `repositories/`: データ取得ロジック（API・DB）を抽象化して定義します。
-      - `app_repository.dart` は全体のデータ取得を管理します。
+  - `models/`: API レスポンスやローカルデータを扱うデータモデルを定義します。
+  - `repositories/`: データ取得ロジック（API・DB）を抽象化して定義します。
+    - `app_repository.dart` は全体のデータ取得を管理します。
 
 - `presentation/`  
   UI や状態管理（ViewModel）を含むプレゼンテーション層です。
-    - `common/`: ローディングインジケータや共通の UI コンポーネントを配置します。
-    - `routes.dart`: 画面遷移（Navigator）に必要なルーティング設定を記述します。
-    - `screens/`: 各画面ごとの UI (`xxx_screen.dart`) と状態管理 (`xxx_viewmodel.dart`) をまとめて配置します。
-      - 例: `home/`, `detail/` など
-    - `widgets/`: 画面に依存しない、再利用可能な UI コンポーネントを配置します。
+  - `common/`: ローディングインジケータや共通の UI コンポーネントを配置します。
+  - `routes.dart`: 画面遷移（Navigator）に必要なルーティング設定を記述します。
+  - `screens/`: 各画面ごとの UI (`xxx_screen.dart`) と状態管理 (`xxx_viewmodel.dart`) をまとめて配置します。
+    - 例: `home/`, `detail/` など
+  - `widgets/`: 画面に依存しない、再利用可能な UI コンポーネントを配置します。
