@@ -21,6 +21,7 @@ export const getTravelQuestion = onRequest(
     });
 
     const previousAnswers = req.body.data?.answers || [];
+    const language = req.body.data?.language === 'en' ? 'English' : 'Japanese';
 
     // answersが配列であることを確認
     if (!Array.isArray(previousAnswers)) {
@@ -38,6 +39,7 @@ export const getTravelQuestion = onRequest(
       - ユーザーの過去の回答履歴を参考に、次の質問を生成してください。
       - 回答履歴がない場合は、最初の質問としてください。
       - 日本国内の旅行先を想定してください。
+      - 生成する質問は必ず「${language}」にしてください。
       
       過去の回答履歴:
       ${previousAnswers.join("\n")}
@@ -70,6 +72,7 @@ export const getTravelDestination = onRequest(
     const unsplash = createApi({ accessKey: UNSPLASH_ACCESS_KEY.value() });
 
     const answers = req.body.data?.answers;
+    const language = req.body.data?.language === 'en' ? 'English' : 'Japanese';
     if (!answers || !Array.isArray(answers) || answers.length === 0) {
       // ... (エラー処理は変更なし)
       return;
@@ -78,9 +81,11 @@ export const getTravelDestination = onRequest(
 
     // OpenAIに旅行先候補を3つ、JSON形式で要求する
     const locationsPrompt = `
-      ユーザーの以下の回答履歴を元に、最もおすすめの日本の旅行先の候補を3つ提案してください。
-      回答は {"locations": ["地名1", "地名2", "地名3"]} というJSONオブジェクトの形式で、locationsというキーに地名の配列を入れて返してください。
-      例: {"locations": ["沖縄", "北海道", "京都"]}
+      ユーザーの以下の回答履歴を元に、最もおすすめの日本の旅行先の候補を5つ提案してください。
+      都道府県名のような広域な地名ではなく、より具体的な地名（例：都市名、有名な観光地名など）を提案してください。
+      回答は {"locations": ["地名1", "地名2", "地名3", "地名4", "地名5"]} というJSONオブジェクトの形式で、locationsというキーに地名の配列を入れて返してください。
+      例: {"locations": ["箱根", "軽井沢", "別府温泉", "伊勢志摩", "金沢"]}
+      地名は必ず「${language}」で返してください。
 
       回答履歴:
       ${answers.join("\n")}
@@ -118,8 +123,8 @@ export const getTravelDestination = onRequest(
         // 各API呼び出しを並列実行
         const [photoResult, descriptionResult, accessResult] = await Promise.all([
           unsplash.search.getPhotos({ query: `${name} japan`, perPage: 1, orientation: 'landscape' }),
-          openai.chat.completions.create({ model: "gpt-4o", messages: [{ role: "user", content: `日本の「${name}」について、150文字程度で魅力的な説明文を作成してください。` }] }),
-          openai.chat.completions.create({ model: "gpt-4o", messages: [{ role: "user", content: `東京駅から日本の「${name}」への主なアクセス方法を100文字程度で簡潔に説明してください。` }] })
+          openai.chat.completions.create({ model: "gpt-4o", messages: [{ role: "user", content: `日本の「${name}」について、150文字程度の魅力的な説明文を「${language}」で作成してください。` }] }),
+          openai.chat.completions.create({ model: "gpt-4o", messages: [{ role: "user", content: `東京駅から日本の「${name}」への主なアクセス方法を100文字程度で簡潔に「${language}」で説明してください。` }] })
         ]);
 
         return {

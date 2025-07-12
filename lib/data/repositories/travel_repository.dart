@@ -5,8 +5,11 @@ import 'package:geek_hackathon/data/models/destination.dart';
 
 // --- Repositoryのインターフェース ---
 abstract class TravelRepository {
-  Future<String> fetchQuestion(List<String> answers);
-  Future<List<Destination>> fetchDestinations(List<String> answers);
+  Future<String> fetchQuestion(List<String> answers, String languageCode);
+  Future<List<Destination>> fetchDestinations(
+    List<String> answers,
+    String languageCode,
+  );
 }
 
 // --- Repositoryの実装クラス ---
@@ -15,12 +18,15 @@ class TravelRepositoryImpl implements TravelRepository {
   final String _baseUrl = "http://10.0.2.2:5001/tender-13fe2/us-central1";
 
   @override
-  Future<String> fetchQuestion(List<String> answers) async {
+  Future<String> fetchQuestion(
+    List<String> answers,
+    String languageCode,
+  ) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/getTravelQuestion'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        'data': {'answers': answers},
+        'data': {'answers': answers, 'language': languageCode},
       }),
     );
 
@@ -33,12 +39,15 @@ class TravelRepositoryImpl implements TravelRepository {
   }
 
   @override
-  Future<List<Destination>> fetchDestinations(List<String> answers) async {
+  Future<List<Destination>> fetchDestinations(
+    List<String> answers,
+    String languageCode,
+  ) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/getTravelDestination'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        'data': {'answers': answers},
+        'data': {'answers': answers, 'language': languageCode},
       }),
     );
 

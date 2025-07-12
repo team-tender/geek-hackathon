@@ -40,7 +40,9 @@ dependencies:
   flutter_card_swiper: ^7.0.2
   image_picker: ^1.1.2
   flip_card: ^0.7.0
-
+  flutter_localization: ^0.3.3
+  flutter_localizations:
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:

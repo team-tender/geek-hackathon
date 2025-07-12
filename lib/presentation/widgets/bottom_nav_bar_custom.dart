@@ -112,6 +112,14 @@ class BottomSheetMenu extends StatelessWidget {
               context.go('/favorite');
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: const Text('LANGUAGE'),
+            onTap: () {
+              context.pop(); // モーダルを閉じる
+              context.go('/language');
+            },
+          ),
         ],
       ),
     );
