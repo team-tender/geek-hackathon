@@ -79,8 +79,8 @@ export const getTravelDestination = onRequest(
     // OpenAIに旅行先候補を3つ、JSON形式で要求する
     const locationsPrompt = `
       ユーザーの以下の回答履歴を元に、最もおすすめの日本の旅行先の候補を3つ提案してください。
-      回答は ["地名1", "地名2", "地名3"] というJSON配列の形式で、地名のみを返してください。
-      例: ["沖縄", "北海道", "京都"]
+      回答は {"locations": ["地名1", "地名2", "地名3"]} というJSONオブジェクトの形式で、locationsというキーに地名の配列を入れて返してください。
+      例: {"locations": ["沖縄", "北海道", "京都"]}
 
       回答履歴:
       ${answers.join("\n")}
@@ -97,11 +97,21 @@ export const getTravelDestination = onRequest(
       });
 
       const messageContent = locationCompletion.choices[0].message.content;
-      if (!messageContent) throw new Error("旅行先のリスト取得に失敗しました。");
-      
+      if (!messageContent) {
+        throw new Error("OpenAIからのレスポンスが空です。");
+      }
       // "locations" というキーでラップされている場合を想定
-      const locationNames = JSON.parse(messageContent).locations || JSON.parse(messageContent);
+      const parsedContent = JSON.parse(messageContent);
+      // まず "locations" キーを試す。なければ、オブジェクトの値の中から配列であるものを探す。
+      const locationNames = parsedContent.locations || Object.values(parsedContent).find(Array.isArray);
+
+      if (!Array.isArray(locationNames)) {
+        logger.error("期待した形式の配列が見つかりませんでした。", parsedContent);
+        throw new Error("旅行先のリスト取得に失敗しました。");
+      }
+
       logger.info("提案された旅行先リスト: ", locationNames);
+
 
       // 各旅行先の詳細情報を並行して取得
       const destinationPromises = locationNames.map(async (name: string) => {
