@@ -5,4 +5,6 @@ import 'package:geek_hackathon/data/models/destination.dart';
 final destinationListProvider = StateProvider<List<Destination>>((ref) => []);
 
 //Favorite用のProvider
-final favoriteDestinationProvider = StateProvider<List<Destination>>((ref) => []);
+final favoriteDestinationProvider = StateProvider<List<Destination>>(
+  (ref) => [],
+);

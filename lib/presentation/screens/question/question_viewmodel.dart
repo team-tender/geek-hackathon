@@ -5,8 +5,6 @@ import 'package:geek_hackathon/presentation/screens/home/home_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:geek_hackathon/data/models/destination.dart';
 
-
-
 // APIの状態を表すenum
 enum ApiStatus { initial, loading, success, error }
 
@@ -45,7 +43,6 @@ class QuestionState {
   }
 }
 
-
 // StateNotifier
 class QuestionViewModel extends StateNotifier<QuestionState> {
   final TravelRepository _travelRepository;
@@ -56,8 +53,8 @@ class QuestionViewModel extends StateNotifier<QuestionState> {
   List<String> get answers => _answers;
 
   QuestionViewModel(this.ref)
-      : _travelRepository = ref.read(mockTravelRepositoryProvider),
-        super(const QuestionState());
+    : _travelRepository = ref.read(mockTravelRepositoryProvider),
+      super(const QuestionState());
 
   bool get canUndo => _previousStates.isNotEmpty;
 
@@ -129,13 +126,17 @@ class QuestionViewModel extends StateNotifier<QuestionState> {
       question: 'おすすめの旅行先を診断中...',
     );
     try {
-      final destinationList = await _travelRepository.fetchDestinations(_answers); // ✅ destinationList を定義
+      final destinationList = await _travelRepository.fetchDestinations(
+        _answers,
+      ); // ✅ destinationList を定義
       ref.read(destinationListProvider.notifier).state = destinationList;
 
       state = state.copyWith(
         status: ApiStatus.success,
         answers: [..._answers],
-        destination: destinationList.isNotEmpty ? destinationList.first : null, // ✅ ここで使う
+        destination: destinationList.isNotEmpty
+            ? destinationList.first
+            : null, // ✅ ここで使う
       );
     } catch (e) {
       state = state.copyWith(
@@ -145,7 +146,6 @@ class QuestionViewModel extends StateNotifier<QuestionState> {
       throw Exception('旅行先の取得に失敗しました: $e');
     }
   }
-
 }
 
 // Provider (ViewModelをUIに提供)

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geek_hackathon/data/models/destination.dart';
 import 'package:geek_hackathon/presentation/screens/home/home_viewmodel.dart';
 
 class FavoriteScreen extends ConsumerWidget {
@@ -11,9 +10,7 @@ class FavoriteScreen extends ConsumerWidget {
     final favorites = ref.watch(favoriteDestinationProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('お気に入り一覧'),
-      ),
+      appBar: AppBar(title: const Text('お気に入り一覧')),
       body: favorites.isEmpty
           ? const Center(child: Text('お気に入りがありません'))
           : ListView.builder(
@@ -21,13 +18,19 @@ class FavoriteScreen extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final d = favorites[index];
                 return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: ListTile(
                     leading: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.network(
-                        d.imageUrl ?? 'https://via.placeholder.com/100x100?text=No+Image',
+                        d.imageUrl ??
+                            'https://via.placeholder.com/100x100?text=No+Image',
                         width: 80,
                         height: 80,
                         fit: BoxFit.cover,

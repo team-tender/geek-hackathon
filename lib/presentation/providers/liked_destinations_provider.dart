@@ -19,4 +19,5 @@ class LikedDestinationsNotifier extends StateNotifier<List<Destination>> {
 
 final likedDestinationsProvider =
     StateNotifierProvider<LikedDestinationsNotifier, List<Destination>>(
-        (ref) => LikedDestinationsNotifier());
+      (ref) => LikedDestinationsNotifier(),
+    );
