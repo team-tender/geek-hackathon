@@ -39,12 +39,26 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
     });
   }
 
+  bool _isNavigating = false;
+
   Future<void> handleAnswer(String answer) async {
+    if (_isNavigating) return;
+
     final viewModel = ref.read(questionViewModelProvider.notifier);
     final currentState = ref.read(questionViewModelProvider);
+
     await viewModel.submitAnswer(currentState.question, answer);
+
     if (!mounted) return;
-    if (viewModel.answers.length >= 5 && context.mounted) {
+
+    if (viewModel.answers.length >= 5) {
+      setState(() {
+        _isNavigating = true; // カード非表示フラグ
+      });
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      if (!mounted) return;
       context.go('/home');
     }
   }
@@ -53,19 +67,23 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(questionViewModelProvider);
     final viewModel = ref.read(questionViewModelProvider.notifier);
+    if (_isNavigating) {
+      // 遷移直前はカード非表示にして空の画面やローディング表示などにする
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
       body: Stack(
         alignment: Alignment.center,
         children: [
-          if (state.destination != null)
-            DestinationResult(
-              destination: state.destination!,
-              onRestart: () {
-                viewModel.reset();
-                viewModel.fetchFirstQuestion();
-              },
-            )
-          else if (state.status == ApiStatus.loading)
+          // if (state.destination != null && state.status != ApiStatus.loading)
+          //   DestinationResult(
+          //     destination: state.destination!,
+          //     onRestart: () {
+          //       viewModel.reset();
+          //       viewModel.fetchFirstQuestion();
+          //     },
+          //   )　結果表示
+          if (state.status == ApiStatus.loading)
             const Center(child: CircularProgressIndicator())
           else if (state.status == ApiStatus.error)
             Center(
@@ -207,14 +225,14 @@ class DestinationResult extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('あなたへのおすすめは...', style: TextStyle(fontSize: 18)),
-          const SizedBox(height: 8),
-          Text(
-            destination.name,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          // const Text('あなたへのおすすめは...', style: TextStyle(fontSize: 18)),
+          // const SizedBox(height: 8),
+          // Text(
+          //   destination.name,
+          //   style: Theme.of(
+          //     context,
+          //   ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+          // ),
           const SizedBox(height: 20),
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
