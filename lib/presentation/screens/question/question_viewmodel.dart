@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geek_hackathon/data/repositories/mock_travel_repository.dart';
 import 'package:geek_hackathon/data/repositories/travel_repository.dart';
 import 'package:geek_hackathon/presentation/providers/language_provider.dart';
 import 'package:geek_hackathon/presentation/screens/home/home_viewmodel.dart';
@@ -53,7 +54,7 @@ class QuestionViewModel extends StateNotifier<QuestionState> {
   List<String> get answers => _answers;
 
   QuestionViewModel(this.ref)
-    : _travelRepository = ref.read(travelRepositoryProvider),
+    : _travelRepository = ref.read(mockTravelRepositoryProvider),
       super(const QuestionState());
 
   bool get canUndo => _previousStates.isNotEmpty;
