@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+//import 'package:google_fonts/google_fonts.dart';
 
 class Header extends StatelessWidget implements PreferredSizeWidget {
   const Header({super.key});
@@ -13,11 +14,15 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          Image.asset('assets/test.png', height: 32),
-          const SizedBox(width: 12),
-          const Text(
-            'Tender',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          Image.asset('assets/tendericon.png', height: 60),
+          const SizedBox(width: 20),
+          Text(
+            'TENDER',
+            style: TextStyle(
+              // Changed GoogleFonts.pacifico
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),

@@ -78,7 +78,17 @@ class _AnimatedArrowState extends State<AnimatedArrow>
             const SizedBox(height: 4),
             Text(
               widget.label,
-              style: const TextStyle(fontSize: 25, color: Colors.white),
+              style: const TextStyle(
+                fontSize: 25,
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    offset: Offset(2.0, 2.0),
+                    blurRadius: 3.0,
+                    color: Color.fromRGBO(0, 0, 0, 0.4),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

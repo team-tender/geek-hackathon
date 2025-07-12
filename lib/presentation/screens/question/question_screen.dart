@@ -5,6 +5,7 @@ import 'package:geek_hackathon/data/models/destination.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geek_hackathon/presentation/screens/question/question_viewmodel.dart';
 import 'package:geek_hackathon/presentation/screens/question/animated_arrow.dart';
+import 'package:lottie/lottie.dart';
 
 class QuestionScreen extends ConsumerStatefulWidget {
   const QuestionScreen({super.key});
@@ -84,7 +85,17 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
           //     },
           //   )　結果表示
           if (state.status == ApiStatus.loading)
-            const Center(child: CircularProgressIndicator())
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Lottie.asset(
+                    'assets/loading.json', // ← あなたのLottieファイルパス
+                    height: 400,
+                  ),
+                ],
+              ),
+            )
           else if (state.status == ApiStatus.error)
             Center(
               child: Column(
@@ -150,7 +161,7 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
                                     child: Image.asset(
-                                      'assets/laughing.gif',
+                                      'assets/liveChatbot.gif',
                                       height: 280,
                                       width: 280,
                                       fit: BoxFit.cover,
@@ -183,7 +194,7 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
             ),
           // 左側 NO（横揺れ）
           AnimatedArrow(
-            imagePath: 'assets/arrow_left.png',
+            imagePath: 'assets/arrow_right.png',
             label: 'NO',
             delay: Duration(milliseconds: 0),
             direction: Axis.horizontal, // ← 横揺れ
@@ -191,9 +202,9 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
 
           // 右側 YES（横揺れ）
           AnimatedArrow(
-            imagePath: 'assets/arrow_right.png',
+            imagePath: 'assets/arrow_left.png',
             label: 'YES',
-            delay: Duration(milliseconds: 500),
+            delay: Duration(milliseconds: 0),
             direction: Axis.horizontal, // ← 横揺れ
           ),
 
@@ -204,6 +215,61 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
             delay: Duration(milliseconds: 0),
             bottom: 16,
             direction: Axis.vertical, // ← ★縦揺れ
+          ),
+
+          AnimatedArrow(
+            imagePath: 'assets/arrow_upward.png',
+            label: 'MAYBE YES',
+            delay: Duration(milliseconds: 0),
+            top: 10,
+            direction: Axis.vertical, // ← ★縦揺れ
+          ),
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                // Undoボタン（背景黒、アイコン白）
+                ElevatedButton(
+                  onPressed: () {
+                    _swiperController.undo();
+                    ref.read(questionViewModelProvider.notifier).undo();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black, // 背景黒
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(20),
+                  ),
+                  child: const Icon(
+                    Icons.undo,
+                    size: 35,
+                    color: Colors.white,
+                  ), // アイコン白
+                ),
+                const SizedBox(height: 20),
+                // Resetボタン（背景白、アイコン黒）
+                ElevatedButton(
+                  onPressed: () {
+                    ref.read(questionViewModelProvider.notifier).reset();
+                    ref
+                        .read(questionViewModelProvider.notifier)
+                        .fetchFirstQuestion();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white, // 背景白
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(20),
+                    //side: const BorderSide(color: Colors.black), // 黒い枠線を付けたい場合
+                  ),
+                  child: const Icon(
+                    Icons.refresh,
+                    size: 35,
+                    color: Colors.black,
+                  ), // アイコン黒
+                ),
+              ],
+            ),
           ),
         ],
       ),
