@@ -52,8 +52,6 @@ class QuestionViewModel extends StateNotifier<QuestionState> {
     await _fetchQuestion();
   }
 
-  // 回答を送信し、次の質問または最終結果を取得
-  Future<void> submitAnswer(String question, String answer) async {
     final newAnswers = [...state.answers, 'Q: $question, A: $answer'];
     state = state.copyWith(
       status: ApiStatus.loading,
