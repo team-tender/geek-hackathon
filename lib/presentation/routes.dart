@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geek_hackathon/presentation/screens/favorite/favorite_screen.dart';
 import 'package:geek_hackathon/presentation/screens/home/home_screen.dart';
+import 'package:geek_hackathon/presentation/screens/language/language_screen.dart';
 import 'package:geek_hackathon/presentation/screens/profile/profile_screen.dart';
 import 'package:geek_hackathon/presentation/screens/question/question_screen.dart';
 import 'package:geek_hackathon/presentation/widgets/bottom_nav_bar_custom.dart';
@@ -34,6 +35,10 @@ final GoRouter router = GoRouter(
         GoRoute(
           path: '/favorite',
           builder: (context, state) => const FavoriteScreen(),
+        ),
+        GoRoute(
+          path: '/language',
+          builder: (context, state) => const LanguageScreen(),
         ),
       ],
     ),

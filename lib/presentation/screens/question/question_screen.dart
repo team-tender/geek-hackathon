@@ -26,7 +26,6 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
   }
 
   @override
-  @override
   void initState() {
     super.initState();
 
@@ -49,8 +48,6 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
     final currentState = ref.read(questionViewModelProvider);
 
     await viewModel.submitAnswer(currentState.question, answer);
-
-    if (!mounted) return;
 
     if (viewModel.answers.length >= 5) {
       setState(() {
@@ -76,14 +73,6 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
       body: Stack(
         alignment: Alignment.center,
         children: [
-          // if (state.destination != null && state.status != ApiStatus.loading)
-          //   DestinationResult(
-          //     destination: state.destination!,
-          //     onRestart: () {
-          //       viewModel.reset();
-          //       viewModel.fetchFirstQuestion();
-          //     },
-          //   )　結果表示
           if (state.status == ApiStatus.loading)
             Center(
               child: Column(
@@ -291,14 +280,6 @@ class DestinationResult extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // const Text('あなたへのおすすめは...', style: TextStyle(fontSize: 18)),
-          // const SizedBox(height: 8),
-          // Text(
-          //   destination.name,
-          //   style: Theme.of(
-          //     context,
-          //   ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-          // ),
           const SizedBox(height: 20),
           ClipRRect(
             borderRadius: BorderRadius.circular(12),

@@ -1,8 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class BottomNavigationBarCustom extends StatelessWidget {
+class BottomNavigationBarCustom extends StatefulWidget {
   const BottomNavigationBarCustom({super.key});
+
+  @override
+  State<BottomNavigationBarCustom> createState() =>
+      _BottomNavigationBarCustomState();
+}
+
+class _BottomNavigationBarCustomState extends State<BottomNavigationBarCustom>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  Future<void> _onTendPressed() async {
+    await _controller.forward();
+    await Future.delayed(const Duration(milliseconds: 50));
+    await _controller.reverse();
+    // contextがまだ有効かを確認してから画面遷移を行う
+    if (mounted) {
+      context.go('/question');
+    }
+    // ▲▲▲ 修正点1 ▲▲▲
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,36 +63,23 @@ class BottomNavigationBarCustom extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(
-                      red: 0,
-                      green: 0,
-                      blue: 0,
-                      alpha: 26, // 0.1 × 255 ≒ 26
-                    ),
-                    blurRadius: 4,
-                  ),
+                  BoxShadow(color: Colors.black.withAlpha(26), blurRadius: 4),
                 ],
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // ホームボタン
                   IconButton(
                     icon: const Icon(Icons.home),
+                    iconSize: 32,
                     onPressed: () => context.go('/home'),
                   ),
-                  // 三本線メニューボタン
                   IconButton(
                     icon: const Icon(Icons.menu),
+                    iconSize: 32,
                     onPressed: () {
                       showModalBottomSheet(
                         context: context,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(16),
-                          ),
-                        ),
                         builder: (_) => const BottomSheetMenu(),
                       );
                     },
@@ -60,23 +88,49 @@ class BottomNavigationBarCustom extends StatelessWidget {
               ),
             ),
           ),
-          // 中央の PUSH ボタン
+
+          // 中央のTENDボタン（アニメーション＋押下時色反転）
           Positioned(
-            bottom: 12,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                shape: const StadiumBorder(),
-                backgroundColor: Colors.blueAccent,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 12,
+            bottom: 10,
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: ElevatedButton(
+                // MaterialStateProperty を WidgetStateProperty に変更
+                style: ButtonStyle(
+                  backgroundColor: WidgetStateProperty.resolveWith<Color>((
+                    states,
+                  ) {
+                    if (states.contains(WidgetState.pressed)) {
+                      return Colors.white; // 押してるとき：白背景
+                    }
+                    return Colors.deepOrange; // 通常：オレンジ背景
+                  }),
+                  foregroundColor: WidgetStateProperty.resolveWith<Color>((
+                    states,
+                  ) {
+                    if (states.contains(WidgetState.pressed)) {
+                      return Colors.deepOrange; // 押してるとき：オレンジ文字
+                    }
+                    return Colors.white; // 通常：白文字
+                  }),
+                  overlayColor: WidgetStateProperty.all(Colors.transparent),
+                  elevation: WidgetStateProperty.all(4),
+                  minimumSize: WidgetStateProperty.all(const Size(250, 55)),
+                  shape: WidgetStateProperty.all(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: const BorderSide(
+                        color: Colors.deepOrange,
+                        width: 2,
+                      ),
+                    ),
+                  ),
                 ),
-                elevation: 4,
-              ),
-              onPressed: () => context.go('/question'),
-              child: const Text(
-                'PUSH',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                onPressed: _onTendPressed,
+                child: const Text(
+                  'TEND',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ),
@@ -86,7 +140,7 @@ class BottomNavigationBarCustom extends StatelessWidget {
   }
 }
 
-// 仮の BottomSheetMenu（後で分離してファイル化）
+// モーダルメニュー（PROFILE, FAVORITE, LANGUAGE）
 class BottomSheetMenu extends StatelessWidget {
   const BottomSheetMenu({super.key});
 
@@ -98,18 +152,27 @@ class BottomSheetMenu extends StatelessWidget {
         children: [
           ListTile(
             leading: const Icon(Icons.person),
-            title: const Text('プロフィール設定'),
+            title: const Text('PROFILE'),
             onTap: () {
-              context.pop(); // モーダルを閉じる
+              context.pop();
               context.go('/profile');
             },
           ),
           ListTile(
-            leading: const Icon(Icons.history),
-            title: const Text('履歴'),
+            leading: const Icon(Icons.favorite),
+            title: const Text('FAVORITE'),
             onTap: () {
               context.pop();
               context.go('/favorite');
+            },
+          ),
+          ListTile(
+            // アイコンを language に変更
+            leading: const Icon(Icons.language),
+            title: const Text('LANGUAGE'),
+            onTap: () {
+              context.pop();
+              context.go('/language');
             },
           ),
         ],
