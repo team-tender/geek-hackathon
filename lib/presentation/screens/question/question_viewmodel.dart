@@ -1,8 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geek_hackathon/data/repositories/mock_travel_repository.dart';
-
+import 'package:geek_hackathon/data/repositories/travel_repository.dart';
 import 'package:geek_hackathon/presentation/screens/home/home_viewmodel.dart';
+import 'package:flutter/material.dart';
+import 'package:geek_hackathon/data/models/destination.dart';
+
+
 
 // APIの状態を表すenum
 enum ApiStatus { initial, loading, success, error }
@@ -15,6 +18,7 @@ class QuestionState {
     this.question = 'PUSHボタンを押して診断を開始してください。',
     this.answers = const [],
     this.errorMessage,
+    this.destination,
   });
 
   final ApiStatus status;
@@ -22,29 +26,51 @@ class QuestionState {
   final List<String> answers;
   final String? errorMessage;
 
+  final Destination? destination;
+
   QuestionState copyWith({
     ApiStatus? status,
     String? question,
     List<String>? answers,
     String? errorMessage,
+    Destination? destination,
   }) {
     return QuestionState(
       status: status ?? this.status,
       question: question ?? this.question,
       answers: answers ?? this.answers,
       errorMessage: errorMessage ?? this.errorMessage,
+      destination: destination ?? this.destination,
     );
   }
 }
 
+
 // StateNotifier
 class QuestionViewModel extends StateNotifier<QuestionState> {
-  // コンストラクタでRefを受け取る
-  QuestionViewModel(this.ref) : super(const QuestionState());
+  final TravelRepository _travelRepository;
   final Ref ref;
+  final List<QuestionState> _previousStates = [];
+  final List<String> _answers = [];
 
-  // 最初の質問を取得
+  List<String> get answers => _answers;
+
+  QuestionViewModel(this.ref)
+      : _travelRepository = ref.read(mockTravelRepositoryProvider),
+        super(const QuestionState());
+
+  bool get canUndo => _previousStates.isNotEmpty;
+
+  void reset() {
+    _previousStates.clear();
+    _answers.clear();
+    state = const QuestionState();
+  }
+
   Future<void> fetchFirstQuestion() async {
+    _previousStates.clear();
+    _answers.clear();
+
     state = const QuestionState(
       status: ApiStatus.loading,
       question: '質問を考えています...',
@@ -52,29 +78,43 @@ class QuestionViewModel extends StateNotifier<QuestionState> {
     await _fetchQuestion();
   }
 
-    final newAnswers = [...state.answers, 'Q: $question, A: $answer'];
+  Future<void> submitAnswer(String question, String answer) async {
+    _saveState();
+
+    _answers.add(answer);
+
     state = state.copyWith(
       status: ApiStatus.loading,
-      answers: newAnswers,
+      answers: [..._answers],
       question: '次の質問を考えています...',
     );
 
-    // 5回質問したら結果を出す
-    if (newAnswers.length >= 5) {
+    if (_answers.length >= 5) {
       await _fetchDestinations();
     } else {
       await _fetchQuestion();
     }
   }
 
-  // 質問を取得する内部メソッド
+  void _saveState() {
+    _previousStates.add(state);
+  }
+
+  void undo() {
+    if (_previousStates.isNotEmpty && _answers.isNotEmpty) {
+      state = _previousStates.removeLast();
+      _answers.removeLast();
+    }
+  }
+
   Future<void> _fetchQuestion() async {
     try {
-      // メソッド内でrepositoryを読み込む
-      // final repository = ref.read(travelRepositoryProvider); // 本物API
-      final repository = ref.read(mockTravelRepositoryProvider); // モックAPI
-      final question = await repository.fetchQuestion(state.answers);
-      state = state.copyWith(status: ApiStatus.success, question: question);
+      final question = await _travelRepository.fetchQuestion(_answers);
+      state = state.copyWith(
+        status: ApiStatus.success,
+        question: question,
+        answers: [..._answers],
+      );
     } catch (e) {
       state = state.copyWith(
         status: ApiStatus.error,
@@ -83,23 +123,21 @@ class QuestionViewModel extends StateNotifier<QuestionState> {
     }
   }
 
-  // 旅行先を取得する内部メソッド
   Future<void> _fetchDestinations() async {
     state = state.copyWith(
       status: ApiStatus.loading,
       question: 'おすすめの旅行先を診断中...',
     );
     try {
-      // final repository = ref.read(travelRepositoryProvider); // 本物API
-      final repository = ref.read(mockTravelRepositoryProvider); // モックAPI
-      final destinationList = await repository.fetchDestinations(state.answers);
-
-      // Home画面のProviderを更新
+      final destinationList = await _travelRepository.fetchDestinations(_answers); // ✅ destinationList を定義
       ref.read(destinationListProvider.notifier).state = destinationList;
-      // 状態を成功に戻す（画面遷移はUI側で行う）
-      state = state.copyWith(status: ApiStatus.success);
+
+      state = state.copyWith(
+        status: ApiStatus.success,
+        answers: [..._answers],
+        destination: destinationList.isNotEmpty ? destinationList.first : null, // ✅ ここで使う
+      );
     } catch (e) {
-      // エラーを再スローしてUI側に失敗を伝える
       state = state.copyWith(
         status: ApiStatus.error,
         errorMessage: e.toString(),
@@ -107,11 +145,12 @@ class QuestionViewModel extends StateNotifier<QuestionState> {
       throw Exception('旅行先の取得に失敗しました: $e');
     }
   }
+
 }
 
 // Provider (ViewModelをUIに提供)
 // autoDisposeを追加して、画面が不要になったら自動でStateを破棄するようにします
 final questionViewModelProvider =
-    StateNotifierProvider.autoDispose<QuestionViewModel, QuestionState>(
-      (ref) => QuestionViewModel(ref),
-    );
+    StateNotifierProvider<QuestionViewModel, QuestionState>((ref) {
+      return QuestionViewModel(ref);
+    });
