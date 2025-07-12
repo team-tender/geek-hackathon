@@ -69,6 +69,7 @@ flutter:
     - assets/test.png
     - assets/headDown.png
     - assets/headUp.png
+    - assets/laughing.gif
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

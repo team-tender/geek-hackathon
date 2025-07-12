@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
+// Destinationモデルを使っているので忘れずにインポート
+import 'package:geek_hackathon/data/models/destination.dart';
+import 'package:geek_hackathon/data/repositories/travel_repository.dart'; // ← TravelRepositoryのインターフェース
+import 'package:geek_hackathon/data/repositories/mock_travel_repository.dart'; // ← モック
 
 enum ApiStatus { initial, loading, success, error }
-
-class Destination {
-  final String name;
-  final String? imageUrl;
-  final String description;
-
-  Destination({required this.name, this.imageUrl, required this.description});
-}
 
 class QuestionState {
   final String question;
@@ -44,9 +40,10 @@ class QuestionState {
 }
 
 class QuestionViewModel extends StateNotifier<QuestionState> {
+  final TravelRepository _travelRepository;
   final List<QuestionState> _previousStates = []; // 過去の状態を保存するリスト
 
-  QuestionViewModel() : super(const QuestionState());
+  QuestionViewModel(this._travelRepository) : super(const QuestionState());
 
   bool get canUndo => _previousStates.isNotEmpty;
 
@@ -79,60 +76,37 @@ class QuestionViewModel extends StateNotifier<QuestionState> {
     }
   }
 
+  final List<String> _answers = [];
+
   /// 回答を送信し、次の質問または結果を取得する
   Future<void> submitAnswer(String question, String answer) async {
-    _saveState(); // 現在の状態を保存
+    _saveState();
+    _answers.add(answer); // ← 回答を保存
+
     state = state.copyWith(
       status: ApiStatus.loading,
       question: '次の質問を考えています...',
     );
-    await Future.delayed(const Duration(seconds: 1));
 
-    // デモ用の単純なロジック
     try {
-      if (question == 'あなたはアウトドア派ですか？') {
-        if (answer == 'はい') {
-          state = state.copyWith(
-            status: ApiStatus.success,
-            question: '山と海、どちらが好きですか？',
-          );
-        } else {
-          state = state.copyWith(
-            status: ApiStatus.success,
-            question: '美術館巡りは好きですか？',
-          );
-        }
-      } else if (question == '山と海、どちらが好きですか？') {
+      final nextQuestion = await _travelRepository.fetchQuestion(
+        _answers,
+      ); // ← 修正
+
+      if (nextQuestion == 'すべての質問が終わりました。') {
+        final destinations = await _travelRepository.fetchDestinations(
+          _answers,
+        ); // ← 修正
+        final destination = destinations.isNotEmpty ? destinations.first : null;
         state = state.copyWith(
           status: ApiStatus.success,
-          destination: () => Destination(
-            name: answer == '山' ? '富士山' : '沖縄の海',
-            imageUrl: answer == '山'
-                ? 'https://cdn.pixabay.com/photo/2016/11/29/05/45/mount-fuji-1867117_1280.jpg'
-                : 'https://cdn.pixabay.com/photo/2017/01/20/00/30/okinawa-1993796_1280.jpg',
-            description: answer == '山'
-                ? '日本一の山、富士山での壮大なハイキングをお楽しみください。'
-                : '美しいビーチと透き通った海が広がる沖縄でリラックスしましょう。',
-          ),
-        );
-      } else if (question == '美術館巡りは好きですか？') {
-        state = state.copyWith(
-          status: ApiStatus.success,
-          destination: () => Destination(
-            name: answer == 'はい' ? '国立新美術館' : 'お家で映画鑑賞',
-            imageUrl: answer == 'はい'
-                ? 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/The_National_Art_Center%2C_Tokyo_01.jpg/1280px-The_National_Art_Center%2C_Tokyo_01.jpg'
-                : 'https://cdn.pixabay.com/photo/2014/09/27/13/44/notebook-463533_1280.jpg',
-            description: answer == 'はい'
-                ? '東京にある国立新美術館で、現代アートの世界に触れてみませんか。'
-                : '家でのんびりと好きな映画を観るのが最高のリフレッシュです。',
-          ),
+          destination: () => destination,
+          question: nextQuestion,
         );
       } else {
-        // フォールバック（ありえないルート）
         state = state.copyWith(
           status: ApiStatus.success,
-          question: '診断が完了しました！',
+          question: nextQuestion,
         );
       }
     } catch (e) {
@@ -151,16 +125,17 @@ class QuestionViewModel extends StateNotifier<QuestionState> {
   /// 一つ前の状態に戻る
   void undo() {
     if (_previousStates.isNotEmpty) {
+      _answers.removeLast();
       state = _previousStates.removeLast();
     }
   }
 }
 
 final questionViewModelProvider =
-    StateNotifierProvider<QuestionViewModel, QuestionState>(
-      (ref) => QuestionViewModel(),
-    );
-
+    StateNotifierProvider<QuestionViewModel, QuestionState>((ref) {
+      final repo = ref.watch(mockTravelRepositoryProvider); // ← 変更
+      return QuestionViewModel(repo);
+    });
 // --- UI (View) の定義 ---
 
 class QuestionScreen extends ConsumerStatefulWidget {
@@ -177,6 +152,15 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
   void dispose() {
     _swiperController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // 初期状態で最初の質問を取得
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(questionViewModelProvider.notifier).fetchFirstQuestion();
+    });
   }
 
   @override
@@ -246,167 +230,152 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
         Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 初期状態: スタートボタンを表示
-            if (state.status == ApiStatus.initial)
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 16,
-                  ),
-                ),
-                onPressed: () => viewModel.fetchFirstQuestion(),
-                child: const Text('診断スタート！', style: TextStyle(fontSize: 18)),
-              )
             // 質問中: スワイプカードを表示
-            else
-              SizedBox(
-                // CardSwiperのサイズを親に合わせる
-                height: MediaQuery.of(context).size.height * 0.7,
-                width: MediaQuery.of(context).size.width,
-                child: CardSwiper(
-                  controller: _swiperController,
-                  cardsCount: 1, // 常に1つの質問を表示
-                  numberOfCardsDisplayed: 1,
-                  isLoop: false,
-                  allowedSwipeDirection: const AllowedSwipeDirection.all(),
-                  onSwipe: (previousIndex, currentIndex, direction) {
-                    String answer = '';
-                    if (direction == CardSwiperDirection.right) {
-                      answer = 'はい';
-                    } else if (direction == CardSwiperDirection.left) {
-                      answer = 'いいえ';
-                    } else if (direction == CardSwiperDirection.top) {
-                      answer = 'わからない';
-                    } else if (direction == CardSwiperDirection.bottom) {
-                      answer = 'たぶんそう';
-                    }
-                    viewModel.submitAnswer(state.question, answer);
-                    return true;
-                  },
-                  cardBuilder:
-                      (context, index, percentThresholdX, percentThresholdY) {
-                        return Card(
-                          elevation: 4,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          color: const Color(0xFFFFE5CB),
-                          child: Padding(
-                            padding: const EdgeInsets.all(24.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.asset(
-                                    'assets/headUp.png', // TODO: あなたの画像パスに置き換えてください
-                                    height: 200,
-                                    width: 200,
-                                    fit: BoxFit.cover,
+            SizedBox(
+              // CardSwiperのサイズを親に合わせる
+              height: MediaQuery.of(context).size.height * 0.7,
+              width: MediaQuery.of(context).size.width,
+              child: CardSwiper(
+                controller: _swiperController,
+                cardsCount: 1, // 常に1つの質問を表示
+                numberOfCardsDisplayed: 1,
+                isLoop: false,
+                allowedSwipeDirection: const AllowedSwipeDirection.all(),
+                onSwipe: (previousIndex, currentIndex, direction) {
+                  String answer = '';
+                  if (direction == CardSwiperDirection.right) {
+                    answer = 'はい';
+                  } else if (direction == CardSwiperDirection.left) {
+                    answer = 'いいえ';
+                  } else if (direction == CardSwiperDirection.top) {
+                    answer = 'わからない';
+                  } else if (direction == CardSwiperDirection.bottom) {
+                    answer = 'たぶんそう';
+                  }
+                  viewModel.submitAnswer(state.question, answer);
+                  return true;
+                },
+                cardBuilder:
+                    (context, index, percentThresholdX, percentThresholdY) {
+                      return Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        color: const Color(0xFFFFE5CB),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.asset(
+                                  'assets/laughing.gif', // TODO: あなたの画像パスに置き換えてください
+                                  height: 280,
+                                  width: 280,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                state.question,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.headlineSmall,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 20),
+                              const Text(
+                                '右にスワイプ: はい / 左にスワイプ: いいえ',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const Spacer(),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  Column(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.arrow_right,
+                                          size: 40,
+                                          color: Colors.blue,
+                                        ),
+                                        onPressed: () => _swiperController
+                                            .swipe(CardSwiperDirection.right),
+                                      ),
+                                      const Text(
+                                        'Yes',
+                                        style: TextStyle(fontSize: 14),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  state.question,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.headlineSmall,
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 20),
-                                const Text(
-                                  '右にスワイプ: はい / 左にスワイプ: いいえ',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey,
+                                  Column(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.arrow_left,
+                                          size: 40,
+                                          color: Colors.red,
+                                        ),
+                                        onPressed: () => _swiperController
+                                            .swipe(CardSwiperDirection.left),
+                                      ),
+                                      const Text(
+                                        'Mo',
+                                        style: TextStyle(fontSize: 14),
+                                      ),
+                                    ],
                                   ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const Spacer(),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Column(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.arrow_right,
-                                            size: 40,
-                                            color: Colors.blue,
-                                          ),
-                                          onPressed: () => _swiperController
-                                              .swipe(CardSwiperDirection.right),
+                                  Column(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.arrow_upward,
+                                          size: 40,
+                                          color: Colors.orange,
                                         ),
-                                        const Text(
-                                          'Yes',
-                                          style: TextStyle(fontSize: 14),
+                                        onPressed: () => _swiperController
+                                            .swipe(CardSwiperDirection.top),
+                                      ),
+                                      const Text(
+                                        'Skip',
+                                        style: TextStyle(fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                  Column(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.arrow_downward,
+                                          size: 40,
+                                          color: Colors.green,
                                         ),
-                                      ],
-                                    ),
-                                    Column(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.arrow_left,
-                                            size: 40,
-                                            color: Colors.red,
-                                          ),
-                                          onPressed: () => _swiperController
-                                              .swipe(CardSwiperDirection.left),
-                                        ),
-                                        const Text(
-                                          'Mo',
-                                          style: TextStyle(fontSize: 14),
-                                        ),
-                                      ],
-                                    ),
-                                    Column(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.arrow_upward,
-                                            size: 40,
-                                            color: Colors.orange,
-                                          ),
-                                          onPressed: () => _swiperController
-                                              .swipe(CardSwiperDirection.top),
-                                        ),
-                                        const Text(
-                                          'Skip',
-                                          style: TextStyle(fontSize: 14),
-                                        ),
-                                      ],
-                                    ),
-                                    Column(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.arrow_downward,
-                                            size: 40,
-                                            color: Colors.green,
-                                          ),
-                                          onPressed: () =>
-                                              _swiperController.swipe(
-                                                CardSwiperDirection.bottom,
-                                              ),
-                                        ),
-                                        const Text(
-                                          'Maybe yes',
-                                          style: TextStyle(fontSize: 14),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                                        onPressed: () => _swiperController
+                                            .swipe(CardSwiperDirection.bottom),
+                                      ),
+                                      const Text(
+                                        'Maybe yes',
+                                        style: TextStyle(fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                ),
+                        ),
+                      );
+                    },
               ),
+            ),
           ],
         ),
         // 「元に戻す」ボタン
