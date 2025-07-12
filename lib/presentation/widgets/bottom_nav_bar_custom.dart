@@ -98,7 +98,7 @@ class BottomSheetMenu extends StatelessWidget {
         children: [
           ListTile(
             leading: const Icon(Icons.person),
-            title: const Text('プロフィール設定'),
+            title: const Text('PROFILE'),
             onTap: () {
               context.pop(); // モーダルを閉じる
               context.go('/profile');
@@ -106,7 +106,7 @@ class BottomSheetMenu extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.history),
-            title: const Text('履歴'),
+            title: const Text('FAVORITE'),
             onTap: () {
               context.pop();
               context.go('/favorite');

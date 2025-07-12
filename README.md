@@ -67,4 +67,4 @@ flutter run
     - `routes.dart`: 画面遷移（Navigator）に必要なルーティング設定を記述します。
     - `screens/`: 各画面ごとの UI (`xxx_screen.dart`) と状態管理 (`xxx_viewmodel.dart`) をまとめて配置します。
       - 例: `home/`, `detail/` など
-    - `widgets/`: 画面に依存しない、再利用可能な UI コンポーネントを配置します。
+    - `widgets/`: 画面に依存しない、再利用可能な UI コンポーネントを配置します

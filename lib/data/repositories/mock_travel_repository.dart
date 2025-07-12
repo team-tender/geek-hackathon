@@ -39,7 +39,7 @@ class MockTravelRepositoryImpl implements TravelRepository {
             '広大な大地と豊かな自然が魅力の北海道。新鮮な海の幸や美味しい乳製品、美しい景色が訪れる人々を魅了します。四季折々のアクティビティも楽しめます。',
         access: '東京から飛行機で約1時間半。新千歳空港から札幌市内へは電車やバスで約40分です。',
         imageUrl:
-            'https://images.unsplash.com/photo-1589192412845-18c644158548',
+            'https://images.unsplash.com/photo-1519046904884-53103b34b206',
       ),
       Destination(
         name: '京都',
@@ -47,7 +47,7 @@ class MockTravelRepositoryImpl implements TravelRepository {
             '日本の古都、京都。歴史ある寺社仏閣が立ち並び、美しい庭園や伝統的な町並みが魅力です。四季折々の風情を感じながら、心安らぐひとときを過ごせます。',
         access: '東京駅から新幹線「のぞみ」で約2時間15分。京都駅からは市内の主要観光地へバスや電車でアクセスできます。',
         imageUrl:
-            'https://images.unsplash.com/photo-1533283281864-a6111a1975e5',
+            'https://images.unsplash.com/photo-1519046904884-53103b34b206',
       ),
       Destination(
         name: '沖縄',
