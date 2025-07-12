@@ -1,1 +1,22 @@
-{"storage":{"rules":"storage.rules"},"functions":[{"source":"functions","codebase":"default","ignore":["node_modules",".git","firebase-debug.log","firebase-debug.*.log","*.local"],"predeploy":["npm --prefix \"$RESOURCE_DIR\" run lint","npm --prefix \"$RESOURCE_DIR\" run build"]}],"flutter":{"platforms":{"android":{"default":{"projectId":"tender-13fe2","appId":"1:735610460431:android:3adf291959fa39dabb067a","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"tender-13fe2","configurations":{"android":"1:735610460431:android:3adf291959fa39dabb067a"}}}}}}
+{
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint",
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    }
+  ]
+}
