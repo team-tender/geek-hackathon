@@ -1,3 +1,4 @@
+// question_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
@@ -17,10 +18,16 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
     with TickerProviderStateMixin {
   final CardSwiperController _swiperController = CardSwiperController();
   late final AnimationController _arrowShakeController;
-  late final AnimationController _undoAnimationController; // ← 追加
+  late final AnimationController _undoAnimationController;
   late final Animation<double> _undoRotationAnimation;
-  late final AnimationController _resetAnimationController; // ← 追加
+  late final AnimationController _resetAnimationController;
   late final Animation<double> _resetRotationAnimation;
+
+  // New AnimationControllers for each swipe direction
+  late final AnimationController _rightSwipeArrowController;
+  late final AnimationController _leftSwipeArrowController;
+  late final AnimationController _topSwipeArrowController;
+  late final AnimationController _bottomSwipeArrowController;
 
   @override
   void dispose() {
@@ -28,6 +35,11 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
     _arrowShakeController.dispose();
     _undoAnimationController.dispose();
     _resetAnimationController.dispose();
+    // Dispose new controllers
+    _rightSwipeArrowController.dispose();
+    _leftSwipeArrowController.dispose();
+    _topSwipeArrowController.dispose();
+    _bottomSwipeArrowController.dispose();
     super.dispose();
   }
 
@@ -43,40 +55,42 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(questionViewModelProvider.notifier).fetchFirstQuestion();
     });
+
     _undoAnimationController = AnimationController(
-      // ← 追加
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
+    _undoRotationAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _undoAnimationController, curve: Curves.easeOut),
+    );
 
-    _undoRotationAnimation =
-        Tween<double>(
-          // ← 追加
-          begin: 0,
-          end: 1,
-        ).animate(
-          CurvedAnimation(
-            parent: _undoAnimationController,
-            curve: Curves.easeOut,
-          ),
-        );
     _resetAnimationController = AnimationController(
-      // ← 追加
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
+    _resetRotationAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _resetAnimationController, curve: Curves.easeOut),
+    );
 
-    _resetRotationAnimation =
-        Tween<double>(
-          // ← 追加
-          begin: 0,
-          end: 1,
-        ).animate(
-          CurvedAnimation(
-            parent: _resetAnimationController,
-            curve: Curves.easeOut,
-          ),
-        );
+    // Initialize new swipe arrow controllers
+    _rightSwipeArrowController = AnimationController(
+      vsync: this,
+      duration: const Duration(
+        milliseconds: 200,
+      ), // Quick animation for feedback
+    );
+    _leftSwipeArrowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _topSwipeArrowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _bottomSwipeArrowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
   }
 
   bool _isNavigating = false;
@@ -156,14 +170,31 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
                     allowedSwipeDirection: const AllowedSwipeDirection.all(),
                     onSwipe: (previousIndex, currentIndex, direction) {
                       String answer = '';
+                      // Trigger arrow animation based on swipe direction
                       if (direction == CardSwiperDirection.right) {
                         answer = 'はい';
+                        _rightSwipeArrowController.forward(from: 0);
+                        Future.delayed(const Duration(milliseconds: 200), () {
+                          _rightSwipeArrowController.reverse();
+                        });
                       } else if (direction == CardSwiperDirection.left) {
                         answer = 'いいえ';
+                        _leftSwipeArrowController.forward(from: 0);
+                        Future.delayed(const Duration(milliseconds: 200), () {
+                          _leftSwipeArrowController.reverse();
+                        });
                       } else if (direction == CardSwiperDirection.top) {
                         answer = 'わからない';
+                        _topSwipeArrowController.forward(from: 0);
+                        Future.delayed(const Duration(milliseconds: 200), () {
+                          _topSwipeArrowController.reverse();
+                        });
                       } else if (direction == CardSwiperDirection.bottom) {
                         answer = 'たぶんそう';
+                        _bottomSwipeArrowController.forward(from: 0);
+                        Future.delayed(const Duration(milliseconds: 200), () {
+                          _bottomSwipeArrowController.reverse();
+                        });
                       }
                       setState(() {});
                       Future.delayed(const Duration(milliseconds: 1000), () {
@@ -211,9 +242,9 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
                                   ),
                                   // SizedBox(height: 20),
                                   // const Text(
-                                  //   '右: はい / 左: いいえ / 上: わからない / 下: たぶんそう',
-                                  //   style: TextStyle(fontSize: 16, color: Colors.grey),
-                                  //   textAlign: TextAlign.center,
+                                  //    '右: はい / 左: いいえ / 上: わからない / 下: たぶんそう',
+                                  //    style: TextStyle(fontSize: 16, color: Colors.grey),
+                                  //    textAlign: TextAlign.center,
                                   // ),
                                   // const Spacer(),
                                 ],
@@ -225,37 +256,43 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
                 ),
               ],
             ),
-          // 左側 NO（横揺れ）
+          // Left (NO) arrow
           AnimatedArrow(
             imagePath: 'assets/arrow_right.png',
             label: 'NO',
             delay: Duration(milliseconds: 0),
-            direction: Axis.horizontal, // ← 横揺れ
+            direction: Axis.horizontal,
+            position: Alignment.centerLeft, // New property for positioning
+            animationController: _leftSwipeArrowController, // Pass controller
           ),
-
-          // 右側 YES（横揺れ）
+          // Right (YES) arrow
           AnimatedArrow(
             imagePath: 'assets/arrow_left.png',
             label: 'YES',
             delay: Duration(milliseconds: 0),
-            direction: Axis.horizontal, // ← 横揺れ
+            direction: Axis.horizontal,
+            position: Alignment.centerRight, // New property for positioning
+            animationController: _rightSwipeArrowController, // Pass controller
           ),
-
-          // 下側 SKIP（縦揺れ）
+          // Bottom (SKIP) arrow
           AnimatedArrow(
             imagePath: 'assets/arrow_downward.png',
             label: 'SKIP',
             delay: Duration(milliseconds: 0),
             bottom: 16,
-            direction: Axis.vertical, // ← ★縦揺れ
+            direction: Axis.vertical,
+            position: Alignment.bottomCenter, // New property for positioning
+            animationController: _bottomSwipeArrowController, // Pass controller
           ),
-
+          // Top (MAYBE YES) arrow
           AnimatedArrow(
             imagePath: 'assets/arrow_upward.png',
             label: 'MAYBE YES',
             delay: Duration(milliseconds: 0),
             top: 10,
-            direction: Axis.vertical, // ← ★縦揺れ
+            direction: Axis.vertical,
+            position: Alignment.topCenter, // New property for positioning
+            animationController: _topSwipeArrowController, // Pass controller
           ),
           Positioned(
             bottom: 16,
@@ -265,13 +302,10 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
               children: [
                 // Undoボタン（背景黒、アイコン白）
                 RotationTransition(
-                  // ← 追加
-                  turns: _undoRotationAnimation, // ← 追加
+                  turns: _undoRotationAnimation,
                   child: ElevatedButton(
                     onPressed: () {
-                      _undoAnimationController.forward(
-                        from: 0,
-                      ); // ← 追加（回転アニメーション開始）
+                      _undoAnimationController.forward(from: 0);
                       _swiperController.undo();
                       ref.read(questionViewModelProvider.notifier).undo();
                     },
@@ -290,11 +324,10 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
                 const SizedBox(height: 20),
                 // Resetボタン（背景白、アイコン黒）
                 RotationTransition(
-                  // ← 追加
-                  turns: _resetRotationAnimation, // ← 追加
+                  turns: _resetRotationAnimation,
                   child: ElevatedButton(
                     onPressed: () {
-                      _resetAnimationController.forward(from: 0); // ← アニメーション開始
+                      _resetAnimationController.forward(from: 0);
                       ref.read(questionViewModelProvider.notifier).reset();
                       ref
                           .read(questionViewModelProvider.notifier)
