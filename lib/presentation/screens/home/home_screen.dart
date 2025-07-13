@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geek_hackathon/data/models/destination.dart';
+import 'package:geek_hackathon/data/repositories/travel_repository.dart';
+import 'package:geek_hackathon/presentation/providers/language_provider.dart';
 import 'package:geek_hackathon/presentation/screens/home/home_viewmodel.dart';
 import 'package:geek_hackathon/presentation/screens/home/widgets/distination_card.dart';
 import 'package:geek_hackathon/presentation/screens/home/widgets/swipe_action_button.dart';
@@ -16,44 +17,55 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final CardSwiperController controller = CardSwiperController();
   List<bool> isFlippedList = [];
+  bool _isLoading = true;
 
-  // サンプルデータ (変更なし)
-  final List<Destination> defaultDestinations = [
-    Destination(
-      name: '長崎',
-      description: '異国情緒あふれる港町。歴史と文化が交差する街。',
-      access: '羽田空港から長崎空港まで約2時間',
-      imageUrl:
-          'https://plus.unsplash.com/premium_photo-1690957484571-26f88c6ad43f?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8TmFnYXNha2l8ZW58MHx8MHx8fDA%3D', // 長崎の街並み
-    ),
-    Destination(
-      name: '金沢',
-      description: '加賀百万石の城下町。兼六園や近江町市場が魅力。',
-      access: '東京から新幹線で約2時間30分',
-      imageUrl:
-          'https://plus.unsplash.com/premium_photo-1690957484571-26f88c6ad43f?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8TmFnYXNha2l8ZW58MHx8MHx8fDA%3D', // 金沢・雪の茶屋街
-    ),
-    Destination(
-      name: '屋久島',
-      description: '世界自然遺産の島。神秘的な森と豊かな自然。',
-      access: '鹿児島からフェリーで約4時間、または飛行機で約35分',
-      imageUrl:
-          'https://plus.unsplash.com/premium_photo-1690957484571-26f88c6ad43f?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8TmFnYXNha2l8ZW58MHx8MHx8fDA%3D', // 屋久島・苔むす森
-    ),
-  ];
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      final current = ref.read(destinationListProvider);
-      if (current.isEmpty) {
-        ref.read(destinationListProvider.notifier).state = defaultDestinations;
-      }
-      isFlippedList = List.generate(
-        ref.read(destinationListProvider).length,
-        (_) => false,
-      );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialDestinations();
     });
+  }
+
+  Future<void> _loadInitialDestinations() async {
+    // リストが空の場合のみAPIから取得
+    if (ref.read(destinationListProvider).isEmpty) {
+      setState(() {
+        _isLoading = true;
+      });
+      try {
+        final languageCode = ref.read(languageProvider).languageCode;
+        final repo = ref.read(travelRepositoryProvider);
+        final destinations = await repo.fetchRandomDestinations(languageCode);
+        if (mounted) {
+          ref.read(destinationListProvider.notifier).state = destinations;
+          isFlippedList = List.generate(destinations.length, (_) => false);
+        }
+      } catch (e) {
+        debugPrint('Failed to load random destinations: $e');
+        // エラーハンドリング (例: スナックバー表示)
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('旅行先の取得に失敗しました。')));
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    } else {
+      // 既存のデータがあればそれを使う（診断結果からの遷移など）
+      setState(() {
+        _isLoading = false;
+        isFlippedList = List.generate(
+          ref.read(destinationListProvider).length,
+          (_) => false,
+        );
+      });
+    }
   }
 
   @override
@@ -66,16 +78,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final destinations = ref.watch(destinationListProvider);
 
-    if (isFlippedList.length != destinations.length) {
-      isFlippedList = List.generate(destinations.length, (_) => false);
-    }
+    // 言語設定が変更されたら、データを再取得する
+    ref.listen(languageProvider, (previous, next) {
+      if (previous != next) {
+        ref.read(destinationListProvider.notifier).state = []; // データをクリア
+        _loadInitialDestinations(); // 再取得
+      }
+    });
 
     return Scaffold(
       body: SafeArea(
         child: Stack(
           children: [
-            if (destinations.isEmpty)
-              const Center(child: Text('診断結果がありません'))
+            if (_isLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (destinations.isEmpty)
+              const Center(
+                child: Text(
+                  '旅行先の読み込みに失敗しました。\n画面を再読み込みしてください。',
+                  textAlign: TextAlign.center,
+                ),
+              )
             else
               CardSwiper(
                 controller: controller,
@@ -96,28 +119,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ...favorites,
                         d,
                       ];
-                      debugPrint('★ お気に入りに追加: ${d.name}');
-                    } else {
-                      debugPrint('★ すでにお気に入りに含まれています: ${d.name}');
                     }
                   }
                   return true;
                 },
-                // cardBuilderが非常にシンプルに！
                 cardBuilder: (context, index, percentX, percentY) {
                   return DestinationCard(
                     destination: destinations[index],
-                    isFlipped: isFlippedList[index],
+                    isFlipped: isFlippedList.length > index
+                        ? isFlippedList[index]
+                        : false,
                     onTap: () {
                       setState(() {
-                        isFlippedList[index] = !isFlippedList[index];
+                        if (isFlippedList.length > index) {
+                          isFlippedList[index] = !isFlippedList[index];
+                        }
                       });
                     },
                   );
                 },
               ),
-            // スワイプボタンもウィジェットとして分離
-            if (destinations.isNotEmpty)
+            if (destinations.isNotEmpty && !_isLoading)
               SwipeActionButtons(controller: controller),
           ],
         ),

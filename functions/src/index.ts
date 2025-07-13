@@ -166,3 +166,71 @@ export const getTravelDestination = onRequest(
     }
   }
 );
+
+// --- API 3: ランダムな旅行先を提案する新しい関数 ---
+export const getRandomDestinations = onRequest(
+  { cors: true, secrets: [OPENAI_API_KEY, UNSPLASH_ACCESS_KEY] },
+  async (req, res) => {
+    const openai = new OpenAI({ apiKey: OPENAI_API_KEY.value() });
+    const unsplash = createApi({ accessKey: UNSPLASH_ACCESS_KEY.value() });
+
+    const languageCode = req.body.data?.language;
+    const language = getLanguageName(languageCode);
+    logger.info(`Getting random destinations in ${language}`);
+
+    const locationsPrompt = `
+      日本の人気で具体的な旅行先（都市名や有名な観光地名）をランダムに5つ提案してください。
+      回答は {"locations": ["地名1", "地名2", "地名3", "地名4", "地名5"]} というJSONオブジェクトの形式で、locationsというキーに地名の配列に入れて返してください。
+      例: {"locations": ["札幌", "横浜", "福岡", "草津温泉", "石垣島"]}
+      地名は必ず「${language}」で返してください。
+    `;
+
+    try {
+      const locationCompletion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        response_format: { type: "json_object" },
+        messages: [
+            { role: "system", content: "You are a helpful assistant designed to output JSON." },
+            { role: "user", content: locationsPrompt }
+        ],
+      });
+
+      const messageContent = locationCompletion.choices[0].message.content;
+      if (!messageContent) {
+        throw new Error("OpenAIからのレスポンスが空です。");
+      }
+      
+      const parsedContent = JSON.parse(messageContent);
+      const locationNames = parsedContent.locations || Object.values(parsedContent).find(Array.isArray);
+
+      if (!Array.isArray(locationNames)) {
+        logger.error("期待した形式の配列が見つかりませんでした。", parsedContent);
+        throw new Error("旅行先のリスト取得に失敗しました。");
+      }
+
+      logger.info("提案されたランダムな旅行先リスト: ", locationNames);
+
+      const destinationPromises = locationNames.map(async (name: string) => {
+        const [photoResult, descriptionResult, accessResult] = await Promise.all([
+          unsplash.search.getPhotos({ query: `${name} japan`, perPage: 1, orientation: 'landscape' }),
+          openai.chat.completions.create({ model: "gpt-4o", messages: [{ role: "user", content: `日本の「${name}」について、150文字程度の魅力的な説明文を「${language}」で作成してください。` }] }),
+          openai.chat.completions.create({ model: "gpt-4o", messages: [{ role: "user", content: `東京駅から日本の「${name}」への主なアクセス方法を100文字程度で簡潔に「${language}」で説明してください。` }] })
+        ]);
+
+        return {
+          name: name,
+          description: descriptionResult.choices[0].message.content,
+          access: accessResult.choices[0].message.content,
+          imageUrl: photoResult.response?.results[0]?.urls?.regular || null,
+        };
+      });
+
+      const destinations = await Promise.all(destinationPromises);
+      res.json({ data: { destinations: destinations } });
+
+    } catch (error) {
+      logger.error("ランダムな旅行先の提案エラー:", error);
+      res.status(500).json({ error: { message: "ランダムな旅行先の提案に失敗しました。" } });
+    }
+  }
+);

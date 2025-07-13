@@ -10,6 +10,7 @@ abstract class TravelRepository {
     List<String> answers,
     String languageCode,
   );
+  Future<List<Destination>> fetchRandomDestinations(String languageCode);
 }
 
 // --- Repositoryの実装クラス ---
@@ -60,6 +61,27 @@ class TravelRepositoryImpl implements TravelRepository {
           .toList();
     } else {
       throw Exception('旅行先の取得に失敗しました。Status Code: ${response.statusCode}');
+    }
+  }
+
+  @override
+  Future<List<Destination>> fetchRandomDestinations(String languageCode) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/getRandomDestinations'), // 新しい関数のエンドポイント
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'data': {'language': languageCode},
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body)['data'];
+      final List<dynamic> destinationListJson = data['destinations'];
+      return destinationListJson
+          .map((json) => Destination.fromJson(json))
+          .toList();
+    } else {
+      throw Exception('ランダムな旅行先の取得に失敗しました。Status Code: ${response.statusCode}');
     }
   }
 }
