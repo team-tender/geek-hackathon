@@ -14,14 +14,20 @@ class QuestionScreen extends ConsumerStatefulWidget {
 }
 
 class _QuestionScreenState extends ConsumerState<QuestionScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final CardSwiperController _swiperController = CardSwiperController();
   late final AnimationController _arrowShakeController;
+  late final AnimationController _undoAnimationController; // ← 追加
+  late final Animation<double> _undoRotationAnimation;
+  late final AnimationController _resetAnimationController; // ← 追加
+  late final Animation<double> _resetRotationAnimation;
 
   @override
   void dispose() {
     _swiperController.dispose();
     _arrowShakeController.dispose();
+    _undoAnimationController.dispose();
+    _resetAnimationController.dispose();
     super.dispose();
   }
 
@@ -37,6 +43,40 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(questionViewModelProvider.notifier).fetchFirstQuestion();
     });
+    _undoAnimationController = AnimationController(
+      // ← 追加
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    _undoRotationAnimation =
+        Tween<double>(
+          // ← 追加
+          begin: 0,
+          end: 1,
+        ).animate(
+          CurvedAnimation(
+            parent: _undoAnimationController,
+            curve: Curves.easeOut,
+          ),
+        );
+    _resetAnimationController = AnimationController(
+      // ← 追加
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    _resetRotationAnimation =
+        Tween<double>(
+          // ← 追加
+          begin: 0,
+          end: 1,
+        ).animate(
+          CurvedAnimation(
+            parent: _resetAnimationController,
+            curve: Curves.easeOut,
+          ),
+        );
   }
 
   bool _isNavigating = false;
@@ -224,42 +264,53 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 // Undoボタン（背景黒、アイコン白）
-                ElevatedButton(
-                  onPressed: () {
-                    _swiperController.undo();
-                    ref.read(questionViewModelProvider.notifier).undo();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black, // 背景黒
-                    shape: const CircleBorder(),
-                    padding: const EdgeInsets.all(20),
+                RotationTransition(
+                  // ← 追加
+                  turns: _undoRotationAnimation, // ← 追加
+                  child: ElevatedButton(
+                    onPressed: () {
+                      _undoAnimationController.forward(
+                        from: 0,
+                      ); // ← 追加（回転アニメーション開始）
+                      _swiperController.undo();
+                      ref.read(questionViewModelProvider.notifier).undo();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      shape: const CircleBorder(),
+                      padding: const EdgeInsets.all(20),
+                    ),
+                    child: const Icon(
+                      Icons.undo,
+                      size: 35,
+                      color: Colors.white,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.undo,
-                    size: 35,
-                    color: Colors.white,
-                  ), // アイコン白
                 ),
                 const SizedBox(height: 20),
                 // Resetボタン（背景白、アイコン黒）
-                ElevatedButton(
-                  onPressed: () {
-                    ref.read(questionViewModelProvider.notifier).reset();
-                    ref
-                        .read(questionViewModelProvider.notifier)
-                        .fetchFirstQuestion();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white, // 背景白
-                    shape: const CircleBorder(),
-                    padding: const EdgeInsets.all(20),
-                    //side: const BorderSide(color: Colors.black), // 黒い枠線を付けたい場合
+                RotationTransition(
+                  // ← 追加
+                  turns: _resetRotationAnimation, // ← 追加
+                  child: ElevatedButton(
+                    onPressed: () {
+                      _resetAnimationController.forward(from: 0); // ← アニメーション開始
+                      ref.read(questionViewModelProvider.notifier).reset();
+                      ref
+                          .read(questionViewModelProvider.notifier)
+                          .fetchFirstQuestion();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      shape: const CircleBorder(),
+                      padding: const EdgeInsets.all(20),
+                    ),
+                    child: const Icon(
+                      Icons.refresh,
+                      size: 35,
+                      color: Colors.black,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.refresh,
-                    size: 35,
-                    color: Colors.black,
-                  ), // アイコン黒
                 ),
               ],
             ),
