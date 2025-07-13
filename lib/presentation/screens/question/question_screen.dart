@@ -149,11 +149,15 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen>
                                 children: [
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
-                                    child: Image.asset(
-                                      'assets/liveChatbot.gif',
-                                      height: 280,
-                                      width: 280,
-                                      fit: BoxFit.cover,
+                                    child: Center(
+                                      child: Transform.scale(
+                                        scale: 1.2, // 拡大率を調整
+                                        child: Lottie.asset(
+                                          'assets/liveChatbot.json',
+                                          fit: BoxFit.contain,
+                                          alignment: Alignment.center,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                   //const Spacer(),
